@@ -411,11 +411,21 @@
         font-size: 14px;
         font-weight: 600;
         font-style: italic;
-        margin-bottom: 20px;
       "
     >
       Created by:
       <a href="https://github.com/levutrieu" target="_blank">Triều Lê</a>
+    </div>
+    <div
+      style="
+        font-size: 14px;
+        font-weight: 600;
+        font-style: italic;
+        margin-bottom: 20px;
+      "
+    >
+      Source code:
+      <a href="https://github.com/levutrieu/CafefExtractor" target="_blank">GitHub Repository</a>
     </div>
 
     <div class="toolbar">
@@ -455,10 +465,10 @@
             <div style="display: flex; align-items: center; gap: 10px">
               <button
                 class="btnAction view-list"
-                style="background: #0f4c81; color: #fff"
+                style="background: #7c7d7e; color: #fff"
                 onclick="openCompanyModal()"
               >
-                👁 Xem danh sách
+                🛠️ Chọn công ty cần lấy
               </button>
               <span
                 style="
@@ -579,7 +589,7 @@
     <div id="companyModal" class="modal" style="display: none">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Danh sách cấu hình công ty</h3>
+          <h3>Danh sách công ty cần lấy dữ liệu</h3>
           <span class="close-modal" onclick="closeCompanyModal()">&times;</span>
         </div>
 
@@ -640,14 +650,14 @@
             onclick="checkAllFiltered(true)"
             style="background-color: #34495e; color: #fff"
           >
-            Chọn hiển thị
+            Chọn tất cả
           </button>
           <button
             class="btnAction"
             onclick="checkAllFiltered(false)"
             style="background-color: #7f8c8d; color: #fff"
           >
-            Bỏ chọn hiển thị
+            Bỏ chọn tất cả
           </button>
           <span
             style="
@@ -9459,14 +9469,13 @@
 
       // Hàm trả về mảng danh sách công ty đã được check dùng cho hàm run() và runWithPool()
       function getSelectedCompanies() {
-        // Nếu map trống (chưa mở modal bao giờ) -> Mặc định lấy toàn bộ currentCompanies
+        // Nếu map trống, khởi tạo mặc định (lúc này toàn bộ sẽ là false)
         if (Object.keys(selectedStockMap).length === 0) {
           initSelectedMap();
         }
-
-        return currentCompanies.filter(
-          (c) => selectedStockMap[c.code] !== false,
-        );
+        
+        // Chỉ lấy những công ty được tích chọn (true)
+        return currentCompanies.filter(c => selectedStockMap[c.code] === true);
       }
 
       // Biến lưu trữ trạng thái Checked của các mã cổ phiếu để tránh bị mất khi Filter ẩn đi
@@ -9476,7 +9485,7 @@
       function initSelectedMap() {
         selectedStockMap = {};
         currentCompanies.forEach((c) => {
-          selectedStockMap[c.code] = true;
+          selectedStockMap[c.code] = false;
         });
       }
 
