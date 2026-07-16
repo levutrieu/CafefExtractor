@@ -1,0 +1,1868 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CafeF Extractor</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        margin: 24px;
+        background: #f5f7fa;
+        color: #333;
+      }
+
+      h2 {
+        margin: 0 0 20px;
+        color: #0f4c81;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+        background: #fff;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 18px;
+      }
+
+      .group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        position: relative;
+      }
+
+      .group label {
+        font-size: 13px;
+        color: #666;
+        font-weight: 600;
+      }
+
+      select,
+      .dropdown-btn,
+      #searchTr {
+        min-width: 180px;
+        padding: 8px 10px;
+        border: 1px solid #cfd6dd;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 14px;
+        height: 38px;
+      }
+
+      /* --- STYLE CHO DROPDOWN MULTI-SELECT --- */
+      .dropdown-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+        background: #fff;
+        border: 1px solid #cfd6dd;
+        width: 280px;
+      }
+
+      .dropdown-btn::after {
+        content: "▼";
+        font-size: 10px;
+        color: #666;
+        margin-left: 8px;
+      }
+
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 100;
+        width: 350px;
+        background: #fff;
+        border: 1px solid #cfd6dd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        padding: 8px;
+        margin-top: 4px;
+      }
+
+      .group.active .dropdown-content {
+        display: block;
+      }
+
+      #searchTr {
+        width: 100%;
+        margin-bottom: 8px;
+        height: 32px;
+        padding: 4px 8px;
+      }
+
+      .multi-select-list {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .multi-select-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        padding: 6px 4px;
+        cursor: pointer;
+        border-radius: 4px;
+        user-select: none;
+      }
+
+      .multi-select-item:hover {
+        background: #f0f4f8;
+      }
+
+      .multi-select-item input {
+        cursor: pointer;
+        width: 15px;
+        height: 15px;
+      }
+
+      select:disabled,
+      button:disabled,
+      #searchTr:disabled,
+      .dropdown-btn.disabled {
+        opacity: 0.6;
+        cursor: not-allowed !important;
+        background: #f0f2f5;
+        pointer-events: none;
+      }
+
+      button {
+        padding: 9px 18px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: 0.2s;
+        height: 38px;
+      }
+
+      button:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      .btnRun {
+        background: #0d6efd;
+        color: #fff;
+      }
+
+      .btnRunWithPool {
+        background: #11e68a;
+        color: #fff;
+      }
+
+      .btnExcel {
+        background: #198754;
+        color: #fff;
+      }
+
+      #log {
+        margin: 15px 0;
+        padding: 10px 14px;
+        background: #fff;
+        border-left: 4px solid #0d6efd;
+        background-color: #f0f0f0;
+        min-height: 30px;
+        font-weight: 600;
+      }
+
+      .table-container {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: auto;
+        max-height: 70vh;
+        position: relative;
+        border: 1px solid #e1e6eb;
+      }
+
+      table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: max-content;
+        min-width: 100%;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        border-right: 1px solid #d9dee5;
+        border-bottom: 1px solid #d9dee5;
+        padding: 8px 12px;
+        white-space: nowrap;
+      }
+
+      /* DOUBLE HEADER STICKY */
+      thead tr:first-child th {
+        position: sticky;
+        top: 0;
+        background: #0f4c81;
+        color: #fff;
+        font-weight: 600;
+        z-index: 15;
+        border-bottom: 1px solid #0a355c;
+        border-top: 1px solid #d9dee5;
+      }
+
+      thead tr:nth-child(2) th {
+        position: sticky;
+        top: 36px;
+        background: #0f4c81;
+        color: #fff;
+        font-weight: 600;
+        z-index: 15;
+        border-bottom: 2px solid #0a355c;
+      }
+
+      thead th:first-child {
+        border-left: 1px solid #d9dee5;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #f8fafc;
+      }
+
+      tbody tr:hover td {
+        background: #fff8d8 !important;
+      }
+
+      /* ==================== CỘT 1 STICKY (MÃ) ==================== */
+      td:first-child {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        font-weight: bold;
+        z-index: 5;
+        border-left: 1px solid #d9dee5;
+        min-width: 70px; /* Đặt độ rộng tối thiểu cố định cho cột 1 */
+        max-width: 70px;
+      }
+
+      thead tr:first-child th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 25;
+        background: #0f4c81;
+        min-width: 70px;
+        max-width: 70px;
+      }
+
+      /* ==================== CỘT 2 STICKY (TÊN DN) ==================== */
+      /* Thuộc tính left của cột 2 phải bằng đúng độ rộng (width) của cột 1 */
+      td:nth-child(2) {
+        position: sticky;
+        left: 70px; /* Khớp chính xác với độ rộng cột 1 để nằm sát cạnh nhau */
+        background: #fff;
+        z-index: 5;
+        min-width: 250px; /* Tên doanh nghiệp dài nên cho rộng một chút */
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis; /* Nếu tên quá dài sẽ tự động có dấu ... */
+      }
+
+      thead tr:first-child th:nth-child(2) {
+        position: sticky;
+        left: 70px; /* Khớp chính xác với độ rộng cột 1 */
+        z-index: 25;
+        background: #0f4c81;
+        min-width: 250px;
+        max-width: 250px;
+      }
+
+      /* Đảm bảo các dòng chẵn vẫn giữ màu nền khi cuộn ngang */
+      tbody tr:nth-child(even) td:first-child,
+      tbody tr:nth-child(even) td:nth-child(2) {
+        background: #f8fafc;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  </head>
+  <body>
+    <div style="font-size: 25px; font-weight: 600">
+      CAFEF FINANCIAL EXTRACTOR
+    </div>
+    <div
+      style="
+        font-size: 14px;
+        font-weight: 600;
+        font-style: italic;
+        margin-bottom: 20px;
+      "
+    >
+      Created by:
+      <a href="https://github.com/levutrieu" target="_blank">Triều Lê</a>
+    </div>
+
+    <div class="toolbar">
+      <div class="group">
+        <label>Loại báo cáo</label>
+        <select id="reportType"></select>
+      </div>
+
+      <div class="group">
+        <label>Năm</label>
+        <select id="year"></select>
+      </div>
+
+      <div class="group" id="multiSelectGroup">
+        <label>Chọn chỉ tiêu</label>
+        <div class="dropdown-btn" onclick="toggleDropdown(event)">
+          Chọn chỉ tiêu...
+        </div>
+        <div class="dropdown-content" onclick="event.stopPropagation()">
+          <input
+            type="text"
+            id="searchTr"
+            placeholder="Nhập từ khóa tìm nhanh..."
+            onkeyup="filterTr()"
+          />
+          <div id="trid-list" class="multi-select-list">
+            <div style="color: #999; font-size: 13px; padding: 4px">
+              Đang tải...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btnRun" id="btnRun" onclick="run()">▶ Chạy tuần tự</button>
+      <button
+        class="btnRunWithPool"
+        id="btnRunWithPool"
+        onclick="runWithPool()"
+      >
+        ▶ Chạy song song
+      </button>
+      <button class="btnExcel" id="btnExcel" onclick="exportExcel()">
+        📄 Xuất Excel
+      </button>
+    </div>
+
+    <div id="log"></div>
+
+    <div class="table-container">
+      <table id="out">
+        <thead>
+          <tr id="parentHdr">
+            <th rowspan="2">Mã</th>
+            <th rowspan="2">Tên DN</th>
+            <!-- Các cột chỉ tiêu cha (colspan="4") sẽ được render động ở đây -->
+          </tr>
+          <tr id="hdr">
+            <!-- Các cột con (4 Quý) sẽ được render động ở đây -->
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <script>
+      const reportTypes = [
+        {
+          id: "bsheet",
+          name: "Bảng cân đối kế toán",
+          url: "https://cafef.vn/du-lieu/bao-cao-tai-chinh/{CODE}/bsheet/{YEAR}/4/0/0/bao-cao-tai-chinh-.chn",
+        },
+        {
+          id: "incsta",
+          name: "Kết quả kinh doanh",
+          url: "https://cafef.vn/du-lieu/bao-cao-tai-chinh/{CODE}/incsta/{YEAR}/4/0/0/ket-qua-hoat-dong-kinh-doanh-.chn",
+        },
+        {
+          id: "cashflow",
+          name: "Lưu chuyển tiền tệ gián tiếp",
+          url: "https://cafef.vn/du-lieu/bao-cao-tai-chinh/{CODE}/cashflow/{YEAR}/4/0/0/luu-chuyen-tien-te-gian-tiep-.chn",
+        },
+        {
+          id: "cashflowdirect",
+          name: "Lưu chuyển tiền tệ trực tiếp",
+          url: "https://cafef.vn/du-lieu/bao-cao-tai-chinh/{CODE}/cashflowdirect/{YEAR}/4/0/0/luu-chuyen-tien-te-truc-tiep-.chn",
+        },
+      ];
+
+      const cboType = document.getElementById("reportType");
+      reportTypes.forEach((r) => {
+        cboType.add(new Option(r.name, r.id));
+      });
+      reportType.addEventListener("change", loadTrList);
+
+      function urlOf(code, year) {
+        const template = reportTypes.find((x) => x.id === reportType.value);
+        return template.url
+          .replace("{CODE}", code.toLowerCase())
+          .replace("{YEAR}", year);
+      }
+
+      const companies = [
+        {
+          code: "AAA",
+          name: "Công ty Cổ phần Nhựa An Phát Xanh (An Phat Bioplastics., JSC)",
+        },
+        { code: "AAM", name: "Công ty Cổ phần Thủy sản Mekong (MEKONGFISH)" },
+        { code: "AAV", name: "Công ty Cổ phần AAV Group (AAV Group)" },
+        {
+          code: "ABR",
+          name: "Công ty Cổ phần Đầu tư Nhãn hiệu Việt (VIET BRAND)",
+        },
+        {
+          code: "ABT",
+          name: "Công ty Cổ phần Xuất nhập khẩu Thủy sản Bến Tre (AQUATEX BENTRE )",
+        },
+        {
+          code: "ACC",
+          name: "Công ty Cổ phần Đầu tư và Xây dựng Bình Dương ACC (BECAMEX ACC)",
+        },
+        {
+          code: "ACL",
+          name: "Công ty cổ phần Xuất nhập khẩu Thủy sản Cửu Long An Giang (CL - Fish Corp )",
+        },
+        {
+          code: "ADC",
+          name: "Công ty Cổ phần Mĩ thuật và Truyền thông (AD&C., JSC)",
+        },
+        { code: "ALT", name: "Công ty Cổ phần Văn hóa Tân Bình (ALTA )" },
+        { code: "AMC", name: "Công ty cổ phần Khoáng sản Á Châu ('')" },
+        {
+          code: "AMV",
+          name: "CTCP Sản xuất Kinh doanh Dược và Trang thiết bị Y (AMVIBIOTECH INC.)",
+        },
+        { code: "ANV", name: "Công ty Cổ phần Nam Việt (NAVICO)" },
+        {
+          code: "ARM",
+          name: "Công ty Cổ phần Xuất nhập khẩu Hàng không (AIRIMEX., JSC)",
+        },
+        {
+          code: "ASM",
+          name: "Công ty Cổ phần Tập đoàn Sao Mai (SAOMAI GROUP)",
+        },
+        {
+          code: "AST",
+          name: "Công ty Cổ phần Dịch vụ Hàng không Taseco (Taseco Airs)",
+        },
+        {
+          code: "ATS",
+          name: "Công ty cổ phần Tập đoàn dược phẩm Atesco (ATESCO.,JSC)",
+        },
+        { code: "BAX", name: "Công ty Cổ phần Thống Nhất ('')" },
+        { code: "BBC", name: "Công ty Cổ phần Bibica (BIBICA)" },
+        { code: "BBS", name: "Công ty cổ phần VICEM Bao bì Bút Sơn (BBS)" },
+        { code: "BCC", name: "Công ty Cổ phần Xi măng Bỉm Sơn (BCC)" },
+        {
+          code: "BCE",
+          name: "Công ty Cổ phần Xây dựng và Giao thông Bình Dương (Becamex BCE)",
+        },
+        { code: "BCF", name: "Công ty Cổ phần Thực phẩm Bích Chi (BCF)" },
+        {
+          code: "BDB",
+          name: "Công ty Cổ phần Sách và Thiết bị Bình Định (BiDiBook)",
+        },
+        { code: "BFC", name: "Công ty cổ phần Phân bón Bình Điền (BFC)" },
+        {
+          code: "BHN",
+          name: "Tổng CTCP Bia - Rượu - Nước giải khát Hà Nội (HABECO)",
+        },
+        {
+          code: "BII",
+          name: "Công ty cổ phần Đầu tư và Phát triển Công nghiệp Bảo Thư (BIDICO)",
+        },
+        { code: "BMC", name: "Công ty cổ phần Khoáng sản Bình Định (BIMICO )" },
+        { code: "BMP", name: "Công ty Cổ phần Nhựa Bình Minh (BMPLASCO )" },
+        { code: "BPC", name: "Công ty cổ phần Vicem Bao bì Bỉm Sơn (BPC )" },
+        { code: "BRC", name: "Công ty Cổ phần Cao su Bến Thành (BERUB JSC)" },
+        { code: "BSC", name: "Công ty Cổ phần Dịch vụ Bến Thành (BTSC)" },
+        {
+          code: "BST",
+          name: "Công ty Cổ phần Sách - Thiết bị Bình Thuận (BISATHICO)",
+        },
+        { code: "BTP", name: "Công ty Cổ phần Nhiệt điện Bà Rịa ('')" },
+        {
+          code: "BTS",
+          name: "Công ty cổ phần Xi măng Vicem Bút Sơn (VICEMBUTSON)",
+        },
+        {
+          code: "BTT",
+          name: "Công ty Cổ phần Thương mại - Dịch vụ Bến Thành (BEN THANH TSC)",
+        },
+        {
+          code: "BTW",
+          name: "Công ty Cổ phần Cấp nước Bến Thành (BENTHANH WASUCO JSC)",
+        },
+        { code: "BXH", name: "Công ty cổ phần VICEM Bao bì Hải Phòng (HPVC)" },
+        { code: "C32", name: "Công ty Cổ phần CIC39 (CIC3-2)" },
+        { code: "C47", name: "Công ty Cổ phần Xây dựng 47 (CC47)" },
+        { code: "C69", name: "Công ty Cổ phần Xây dựng 1369 ('')" },
+        { code: "CAG", name: "Công ty Cổ phần Cảng An Giang (AGP)" },
+        {
+          code: "CAN",
+          name: "Công ty Cổ phần Đồ hộp Hạ Long (HaLong Canfoco )",
+        },
+        { code: "CAV", name: "Công ty cổ phần Dây Cáp Điện Việt Nam (CADIVI)" },
+        {
+          code: "CCI",
+          name: "Công ty Cổ phần Đầu tư Phát triển Công nghiệp - Thương mại Củ Chi (CIDICO)",
+        },
+        { code: "CCR", name: "Công ty cổ phần Cảng Cam Ranh (CẢNG CAM RANH)" },
+        {
+          code: "CDC",
+          name: "Công ty Cổ phần Chương Dương (Chương Dương ACIC)",
+        },
+        { code: "CDN", name: "Công ty cổ phần Cảng Đà Nẵng (Danang Port)" },
+        {
+          code: "CEO",
+          name: "Công ty Cổ phần Tập đoàn C.E.O (CEOGROUP., JSC)",
+        },
+        { code: "CHP", name: "Công ty Cổ phần Thủy điện miền Trung (CHP)" },
+        {
+          code: "CII",
+          name: "Công ty cổ phần Đầu tư Hạ tầng Kỹ thuật T.P Hồ Chí Minh (CII )",
+        },
+        { code: "CJC", name: "Công ty Cổ phần Cơ điện Miền Trung (CEMC)" },
+        { code: "CLC", name: "Công ty Cổ phần Cát Lợi (CLC. )" },
+        { code: "CLH", name: "Công ty cổ phần Xi măng La Hiên VVMI (LHC)" },
+        {
+          code: "CLL",
+          name: "Công ty cổ phần Cảng Cát Lái (Cat Lai Port JSC)",
+        },
+        {
+          code: "CLM",
+          name: "CTCP Xuất nhập khẩu Than - Vinacomin (Coalimex)",
+        },
+        {
+          code: "CLW",
+          name: "Công ty Cổ phần Cấp nước Chợ Lớn (CHOLON WASUCO JSC)",
+        },
+        { code: "CMC", name: "Công ty Cổ phần Đầu tư CMC (CMCI JSC)" },
+        {
+          code: "CMS",
+          name: "Công ty cổ phần Tập đoàn CMH Việt Nam (CMH Group)",
+        },
+        { code: "CMV", name: "Công ty Cổ phần Thương nghiệp Cà Mau (Camex)" },
+        { code: "CMX", name: "Công ty Cổ phần Camimex Group (CAMIMEX Group)" },
+        { code: "CNG", name: "Công ty cổ phần CNG Việt Nam (CNG VietNam)" },
+        { code: "COM", name: "Công ty Cổ phần Vật tư - Xăng dầu (COMECO)" },
+        {
+          code: "CSM",
+          name: "Công ty Cổ phần Công nghiệp Cao su Miền Nam (CASUMINA)",
+        },
+        {
+          code: "CSV",
+          name: "Công ty Cổ phần Hóa chất Cơ bản miền Nam (SBCC)",
+        },
+        { code: "CTB", name: "Công ty Cổ phần Chế tạo Bơm Hải Dương (HPMC)" },
+        { code: "CTD", name: "Công ty Cổ phần Xây dựng Coteccons (COTECCONS)" },
+        { code: "CTF", name: "Công ty cổ phần City Auto (City Auto Corp)" },
+        {
+          code: "CTI",
+          name: "Công ty Cổ phần Đầu tư Phát triển Cường Thuận IDICO (CTC)",
+        },
+        { code: "CTT", name: "CTCP Chế tạo máy Vinacomin (VMC)" },
+        {
+          code: "D2D",
+          name: "Công ty Cổ phần Phát triển Đô thị Công nghiệp Số 2 (D2D)",
+        },
+        {
+          code: "DAD",
+          name: "Công ty Cổ phần Đầu tư và Phát triển Giáo dục Đà Nẵng (DEIDCO)",
+        },
+        {
+          code: "DAE",
+          name: "Công ty Cổ phần Sách Giáo dục tại Tp. Đà Nẵng (Daebco)",
+        },
+        {
+          code: "DAH",
+          name: "Công ty cổ phần Tập đoàn Khách sạn Đông Á (DONG A HOTEL GROUP., JSC)",
+        },
+        {
+          code: "DAT",
+          name: "Công ty Cổ phần Đầu tư Du lịch và Phát triển Thủy sản (TRISEDCO )",
+        },
+        {
+          code: "DBC",
+          name: "Công ty Cổ phần Tập đoàn Dabaco Việt Nam (DABACO)",
+        },
+        {
+          code: "DBD",
+          name: "Công ty Cổ phần Dược - Trang thiết bị Y tế Bình Định (Bidiphar)",
+        },
+        { code: "DBT", name: "Công ty Cổ phần Dược phẩm Bến Tre (BEPHARCO)" },
+        {
+          code: "DC4",
+          name: "Công ty Cổ phần Xây dựng DIC Holdings (DIC.Cons)",
+        },
+        {
+          code: "DCL",
+          name: "Công ty Cổ phần Dược phẩm Cửu Long (PHARIMEXCO)",
+        },
+        {
+          code: "DCM",
+          name: "Công ty Cổ phần Phân bón Dầu khí Cà Mau (PVCFC)",
+        },
+        {
+          code: "DDG",
+          name: "Công ty cổ phần Đầu tư Công nghiệp Xuất nhập khẩu Đông Dương (INDOCHINEIMEX., JSC)",
+        },
+        {
+          code: "DGC",
+          name: "Công ty Cổ phần Tập đoàn Hóa chất Đức Giang (DGC)",
+        },
+        { code: "DGW", name: "Công ty cổ phần Thế giới số (DIGIWORLD)" },
+        { code: "DHA", name: "Công ty Cổ phần Hóa An (H.A.J.S.C)" },
+        { code: "DHC", name: "Công ty Cổ phần Đông Hải Bến Tre (DOHACO)" },
+        { code: "DHG", name: "Công ty Cổ phần Dược Hậu Giang (DHG)" },
+        {
+          code: "DIG",
+          name: "Tổng Công ty Cổ phần Đầu tư Phát triển Xây dựng (DIC CORP)",
+        },
+        {
+          code: "DLG",
+          name: "Công ty Cổ phần Tập đoàn Đức Long Gia Lai (DLG GROUP)",
+        },
+        {
+          code: "DMC",
+          name: "Công ty Cổ phần Xuất nhập khẩu Y tế Domesco (DOMESCO )",
+        },
+        { code: "DNM", name: "Tổng Công ty cổ phần Y tế Danameco (DANAMECO)" },
+        { code: "DPC", name: "Công ty Cổ phần Nhựa Đà Nẵng (DANAPLAST CO. )" },
+        {
+          code: "DPG",
+          name: "Công ty Cổ phần Tập đoàn Đạt Phương (Dat Phuong Joint.,.JSC)",
+        },
+        {
+          code: "DPM",
+          name: "Tổng Công ty Phân bón và Hóa chất Dầu khí-CTCP (PVFCCo)",
+        },
+        { code: "DPR", name: "Công ty Cổ phần Cao su Đồng Phú (DORUCO)" },
+        { code: "DQC", name: "Công ty Cổ phần Bóng đèn Điện Quang (DQ JSC)" },
+        { code: "DRC", name: "Công ty Cổ phần Cao su Đà Nẵng (DRC )" },
+        {
+          code: "DRL",
+          name: "Công ty Cổ phần Thủy điện – Điện lực 3 (PC3,HP.Co)",
+        },
+        { code: "DS3", name: "Công ty Cổ phần Quản lý Đường sông số 3 ('')" },
+        {
+          code: "DSN",
+          name: "Công ty Cổ phần Công viên nước Đầm Sen (DASECO)",
+        },
+        { code: "DTA", name: "Công ty Cổ phần Đệ Tam (DETACO)" },
+        { code: "DTD", name: "Công ty Cổ phần Đầu tư phát triển Thành Đạt" },
+        { code: "DTL", name: "Công ty Cổ phần Đại Thiên Lộc (DTLS)" },
+        { code: "DTT", name: "Công ty Cổ phần Kỹ nghệ Đô Thành (DTT )" },
+        {
+          code: "DXG",
+          name: "Công ty Cổ phần Tập đoàn Đất Xanh (Datxanh Group)",
+        },
+        {
+          code: "DXV",
+          name: "Công ty Cổ phần VICEM Vật liệu Xây dựng Đà Nẵng (COXIVA)",
+        },
+        {
+          code: "EBS",
+          name: "Công ty Cổ phần Sách Giáo dục tại Tp.Hà Nội (Haebco JSC)",
+        },
+        {
+          code: "ECI",
+          name: "Công ty Cổ phần Bản đồ và Tranh ảnh Giáo dục (ECICO.,JSC)",
+        },
+        {
+          code: "EID",
+          name: "Công ty Cổ phần Đầu tư và Phát triển giáo dục Hà Nội (HEID)",
+        },
+        { code: "EMC", name: "Công ty cổ phần Cơ điện Thủ Đức ('')" },
+        { code: "EVE", name: "Công ty cổ phần Everpia (Everpia)" },
+        { code: "EVG", name: "Công ty Cổ phần Đầu tư Everland (EVG., JSC)" },
+        { code: "FCN", name: "Công ty cổ phần FECON (FECON)" },
+        {
+          code: "FID",
+          name: "Công ty Cổ phần Đầu tư và Phát triển Doanh nghiệp Việt Nam (VNDINVEST.,JSC)",
+        },
+        { code: "FPT", name: "Công ty Cổ phần FPT (FPT Corp)" },
+        { code: "GAS", name: "Tổng Công ty Khí Việt Nam-CTCP (PVGas)" },
+        {
+          code: "GDT",
+          name: "Công ty Cổ phần Chế biến Gỗ Đức Thành (DTWOODVN)",
+        },
+        {
+          code: "GDW",
+          name: "Công ty Cổ phần Cấp nước Gia Định (GIA DINH WASUCO JSC)",
+        },
+        { code: "GEG", name: "Công ty Cổ phần Điện Gia Lai (GEC)" },
+        {
+          code: "GEX",
+          name: "Công ty Cổ phần Tập đoàn GELEX (Tập đoàn Gelex)",
+        },
+        {
+          code: "GIL",
+          name: "Công ty Cổ phần Sản xuất Kinh doanh Xuất nhập khẩu Bình Thạnh (GILIMEX )",
+        },
+        { code: "GKM", name: "Công ty Cổ phần Khang Minh Group (KMC)" },
+        {
+          code: "GMC",
+          name: "Công ty Cổ phần Garmex Sài Gòn (GARMEX SAIGON JS)",
+        },
+        { code: "GMD", name: "Công ty Cổ phần Gemadept (Gemadept )" },
+        {
+          code: "GMX",
+          name: "Công ty cổ phần Gạch Ngói Gốm Xây dựng Mỹ Xuân (GMX)",
+        },
+        {
+          code: "GSP",
+          name: "Công ty cổ phần Vận tải Sản phẩm khí quốc tế (GAS SHIPPING JSC)",
+        },
+        { code: "GTA", name: "Công ty Cổ phần Chế biến Gỗ Thuận An (T.A.C )" },
+        { code: "HAD", name: "Công ty Cổ phần Bia Hà Nội - Hải Dương (HAD)" },
+        { code: "HAG", name: "Công ty Cổ phần Hoàng Anh Gia Lai (HAGL)" },
+        {
+          code: "HAH",
+          name: "Công ty Cổ phần Vận tải và Xếp dỡ Hải An (HAIANTS.,JSC)",
+        },
+        { code: "HAP", name: "Công ty Cổ phần Tập đoàn Hapaco (HAPACO )" },
+        {
+          code: "HAR",
+          name: "Công ty Cổ phần Đầu tư Thương mại Bất động sản An Dương Thảo Điền (Công ty Cổ phần An Dương Thảo Điền)",
+        },
+        { code: "HAS", name: "Công ty Cổ phần HACISCO (HACISCO )" },
+        {
+          code: "HAX",
+          name: "Công ty Cổ phần Dịch vụ Ô tô Hàng Xanh (HAXACO )",
+        },
+        {
+          code: "HCT",
+          name: "Công ty Cổ phần Thương mại Dịch vụ Vận tải Xi măng Hải Phòng (HPCTT)",
+        },
+        { code: "HDA", name: "Công ty Cổ phần Hãng sơn Đông Á (HSDA)" },
+        {
+          code: "HGM",
+          name: "Công ty cổ phần Cơ khí và Khoáng sản Hà Giang (HGM)",
+        },
+        { code: "HHG", name: "Công ty Cổ phần Hoàng Hà (Hoang Ha.,JSC)" },
+        { code: "HHS", name: "Công ty Cổ phần Đầu tư Dịch vụ Hoàng Huy (HHS)" },
+        {
+          code: "HHV",
+          name: "Công ty cổ phần Đầu tư hạ tầng giao thông Đèo Cả (DII)",
+        },
+        {
+          code: "HII",
+          name: "Công ty Cổ phần An Tiến Industries (Antien Industries.,.JSC)",
+        },
+        { code: "HKT", name: "Công ty Cổ phần Đầu tư EGO Việt Nam" },
+        { code: "HLC", name: "Công ty cổ phần Than Hà Lầm - Vinacomin (VHLC)" },
+        {
+          code: "HMC",
+          name: "Công ty Cổ phần Kim khí Thành phố Hồ Chí Minh - Vnsteel",
+        },
+        { code: "HMH", name: "Công ty Cổ phần Hải Minh (HAMI CORP)" },
+        {
+          code: "HNG",
+          name: "Công ty cổ phần Nông nghiệp Quốc tế Hoàng Anh Gia Lai (HAGL AGRICO)",
+        },
+        {
+          code: "HOT",
+          name: "Công ty cổ phần Du lịch - Dịch vụ Hội An (HOIAN TOURIST SERVICE Co)",
+        },
+        {
+          code: "HPG",
+          name: "Công ty cổ phần Tập đoàn Hòa Phát (Hoa Phat Group)",
+        },
+        {
+          code: "HQC",
+          name: "Công ty cổ phần Tư vấn-Thương mại-Dịch vụ Địa ốc Hoàng Quân (HOANG QUAN CORP)",
+        },
+        { code: "HRC", name: "Công ty Cổ phần Cao su Hòa Bình (HRC )" },
+        {
+          code: "HSG",
+          name: "Công ty Cổ phần Tập đoàn Hoa Sen (HOASEN GROUP)",
+        },
+        {
+          code: "HSL",
+          name: "Công ty Cổ phần Đầu tư Phát triển Thực phẩm Hồng Hà (HONGHA SONLA., JSC)",
+        },
+        {
+          code: "HT1",
+          name: "Công ty Cổ phần xi măng VICEM Hà Tiên (VICEM HA TIEN 1.J.S.CO)",
+        },
+        { code: "HTC", name: "Công ty Cổ phần Thương mại Hóc Môn (HOTRACO)" },
+        {
+          code: "HTI",
+          name: "Công ty Cổ phần Đầu tư phát tầng IDICO (IDICO-IDI.JSC )",
+        },
+        {
+          code: "HTL",
+          name: "Công ty Cổ phần Kỹ thuật và Ô tô Trường Long (Truong Long JSC)",
+        },
+        {
+          code: "HTV",
+          name: "Công ty Cổ phần Logistics Vicem (HATIEN TRANSCO)",
+        },
+        { code: "HU3", name: "Công ty cổ phần Đầu tư và Xây dựng HUD3 (HUD3)" },
+        { code: "HUB", name: "Công ty cổ phần Xây lắp Thừa Thiên Huế (HCC)" },
+        { code: "HUT", name: "Công ty Cổ phần Tasco (HUD -TASCO)" },
+        { code: "HVT", name: "Công ty Cổ phần Hóa chất Việt Trì (Vicco)" },
+        { code: "ICG", name: "Công ty Cổ phần Xây dựng Sông Hồng (INCOMEX)" },
+        {
+          code: "IDI",
+          name: "Công ty Cổ phần Đầu tư và Phát triển Đa Quốc Gia I.D.I (IDI)",
+        },
+        {
+          code: "IDJ",
+          name: "Công ty cổ phần Đầu tư IDJ Việt Nam (IDJ Financial)",
+        },
+        {
+          code: "IDV",
+          name: "Công ty Cổ phần Phát triển Hạ tầng Vĩnh Phúc (VPID)",
+        },
+        {
+          code: "IJC",
+          name: "Công ty Cổ phần Phát triển Hạ tầng Kỹ thuật (BECAMEX IJC)",
+        },
+        {
+          code: "INN",
+          name: "Công ty Cổ phần Bao bì và In Nông nghiệp (APP PRINT.CO)",
+        },
+        {
+          code: "ITQ",
+          name: "Công ty cổ phần Tập đoàn Thiên Quang (TQ GROUP)",
+        },
+        { code: "KDC", name: "Công ty Cổ phần Tập đoàn Kido (Kido Group)" },
+        {
+          code: "KDH",
+          name: "Công ty Cổ phần Đầu tư và Kinh doanh nhà Khang Điền (KhadiHouse., JSC)",
+        },
+        { code: "KDM", name: "Công ty cổ phần Tập đoàn GCL (Tập đoàn GCL)" },
+        { code: "KHS", name: "Công ty Cổ phần Kiên Hùng (KIHUSEA VN)" },
+        {
+          code: "KKC",
+          name: "Công ty Cổ phần Tập đoàn Thành Thái (TTGROUP JSC)",
+        },
+        { code: "KMT", name: "Công ty cổ phần Kim khí miền Trung (CEVIMETAL)" },
+        { code: "KOS", name: "Công ty Cổ phần Kosy (KOSY.,JSC)" },
+        {
+          code: "KPF",
+          name: "Công ty Cổ phần Đầu tư tài sản Koji (HM Finance Invest .,JSC)",
+        },
+        {
+          code: "KSB",
+          name: "Công ty Cổ phần Khoáng sản và Xây dựng Bình Dương (BIMICO)",
+        },
+        { code: "KST", name: "Công ty cổ phần KASATI (KASATI)" },
+        { code: "KSV", name: "Tổng Công ty Khoáng sản TKV - CTCP (VIMICO)" },
+        { code: "KTS", name: "Công ty cổ phần Đường Kon Tum (KTS)" },
+        { code: "KTT", name: "Công ty cổ phần Tập đoàn đầu tư KTT ('')" },
+        { code: "KVC", name: "CTCP Sản xuất Xuất nhập khẩu Inox Kim Vĩ ('')" },
+        { code: "L10", name: "Công ty cổ phần Lilama 10 (Lilama 10.,JSC)" },
+        { code: "L14", name: "Công ty cổ phần LICOGI 14 (LICOGI 14)" },
+        { code: "L61", name: "Công ty Cổ phần Lilama 69-1 (LILAMA 69-1)" },
+        {
+          code: "LAF",
+          name: "Công ty Cổ phần Chế biến Hàng xuất khẩu Long An (LAFOOCO )",
+        },
+        {
+          code: "LAS",
+          name: "Công ty cổ phần Supe Phốt phát và Hóa chất Lâm Thao (LAFCHEMCO)",
+        },
+        {
+          code: "LBE",
+          name: "Công ty Cổ phần Sách và Thiết bị trường học Long An (LABECO )",
+        },
+        {
+          code: "LCD",
+          name: "Công ty Cổ phần Lắp máy - Thí nghiệm Cơ điện (EMETC., JSC)",
+        },
+        { code: "LCG", name: "Công ty cổ phần LIZEN (Lizen)" },
+        { code: "LDG", name: "Công ty Cổ phần Đầu tư LDG (Dragonland JSC)" },
+        {
+          code: "LDP",
+          name: "Công ty Cổ phần Dược Lâm Đồng - Ladophar (LADOPHAR)",
+        },
+        {
+          code: "LEC",
+          name: "Công ty Cổ phần Bất động sản Điện lực Miền Trung (EVNLAND-CENTRAL )",
+        },
+        {
+          code: "LGC",
+          name: "Công ty Cổ phần Đầu tư Cầu đường CII (CII Bridge & Road)",
+        },
+        {
+          code: "LGL",
+          name: "Công ty cổ phần Đầu tư và Phát triển Đô thị Long Giang (Long Giang Land)",
+        },
+        {
+          code: "LHC",
+          name: "Công ty Cổ phần Đầu tư và Xây dựng Thủy lợi Lâm Đồng (LHC)",
+        },
+        { code: "LIG", name: "Công ty Cổ phần Licogi 13 (LICOGI 13)" },
+        { code: "LIX", name: "Công ty Cổ phần Bột giặt Lix (Lixco)" },
+        { code: "LM8", name: "Công ty Cổ phần Lilama 18 (LILAMA 18 JSC)" },
+        {
+          code: "MAS",
+          name: "Công ty cổ phần Dịch vụ Hàng không Sân bay Đà Nẵng ('')",
+        },
+        { code: "MBG", name: "Công ty cổ phần Tập đoàn MBG (MBG GROUP .,JSC)" },
+        {
+          code: "MDC",
+          name: "Công ty cổ phần Than Mông Dương - Vinacomin (VMDC)",
+        },
+        {
+          code: "MEL",
+          name: "Công ty Cổ phần Thép Mê Lin (Me Lin Steel J.s.c)",
+        },
+        { code: "MHC", name: "Công ty Cổ phần MHC (Marina Holdings)" },
+        { code: "MKV", name: "Công ty Cổ phần Dược Thú y Cai Lậy (MEKOVET )" },
+        { code: "MSN", name: "Công ty Cổ phần Tập đoàn MaSan (Masan Group)" },
+        { code: "MST", name: "Công ty Cổ phần Đầu tư MST ('')" },
+        {
+          code: "MVB",
+          name: "Tổng công ty Công nghiệp mỏ Việt Bắc TKV - CTCP (VVMI)",
+        },
+        {
+          code: "MWG",
+          name: "Công ty cổ phần Đầu tư Thế giới Di động (MWI CORP)",
+        },
+        { code: "NAF", name: "Công ty Cổ phần Nafoods Group (NAFoods Group)" },
+        {
+          code: "NAP",
+          name: "Công ty cổ phần Cảng Nghệ Tĩnh (Cảng Nghệ Tĩnh)",
+        },
+        {
+          code: "NBC",
+          name: "Công ty cổ phần Than Núi Béo – Vinacomin (VNBC)",
+        },
+        {
+          code: "NBW",
+          name: "Công ty Cổ phần Cấp nước Nhà Bè (NHA BE WASUCO JSC)",
+        },
+        {
+          code: "NCT",
+          name: "Công ty Cổ phần Dịch vụ Hàng hóa Nội Bài (NCTS)",
+        },
+        {
+          code: "NDN",
+          name: "Công ty Cổ phần Đầu tư Phát triển Nhà Đà Nẵng (NDN)",
+        },
+        {
+          code: "NHA",
+          name: "Tổng Công ty Đầu tư Phát triển Nhà và Đô thị Nam Hà Nội (Ha Noi South Corporation)",
+        },
+        { code: "NHC", name: "Công ty Cổ phần Gạch Ngói Nhị Hiệp (BRICO)" },
+        { code: "NHH", name: "Công ty Cổ phần Nhựa Hà Nội (HPCS.,JSC)" },
+        { code: "NKG", name: "Công ty Cổ phần Thép Nam Kim (Nakisco)" },
+        { code: "NLG", name: "Công ty cổ phần Đầu tư Nam Long (NLG)" },
+        { code: "NNC", name: "Công ty Cổ phần Đá Núi Nhỏ (NNC)" },
+        {
+          code: "NSC",
+          name: "Công ty cổ phần Tập đoàn Giống cây trồng Việt Nam (VINASEED)",
+        },
+        {
+          code: "NSH",
+          name: "Công ty Cổ phần Tập đoàn Nhôm Sông Hồng Shalumi",
+        },
+        {
+          code: "NT2",
+          name: "Công ty Cổ phần Điện lực Dầu khí Nhơn Trạch 2 (PV Power NT2)",
+        },
+        {
+          code: "NTL",
+          name: "Công ty Cổ phần Phát triển Đô thị Từ Liêm (LIDECO)",
+        },
+        {
+          code: "NVL",
+          name: "Công ty cổ phần Tập đoàn Đầu tư Địa ốc No Va (Novaland Group)",
+        },
+        {
+          code: "OCH",
+          name: "Công ty Cổ phần One Capital Hospitality (One Capital Hospitality Joint Stock Company)",
+        },
+        { code: "ONE", name: "Công ty Cổ phần Truyền thông số 1 (One Corp)" },
+        { code: "PAC", name: "Công ty Cổ phần Pin Ắc quy Miền Nam (PINACO )" },
+        { code: "PAN", name: "Công ty Cổ phần Tập đoàn PAN (The PAN Group)" },
+        { code: "PC1", name: "Công ty Cổ phần Tập đoàn PC1 (PCC1)" },
+        {
+          code: "PCG",
+          name: "Công ty Cổ phần Đầu tư và Phát triển Gas Đô Thị (PVGAS CITY)",
+        },
+        {
+          code: "PDB",
+          name: "Công ty Cổ phần Tập đoàn đầu tư DIN Capital (DIN CAPITAL)",
+        },
+        { code: "PDN", name: "Công ty Cổ phần Cảng Đồng Nai (Dong Nai Port)" },
+        {
+          code: "PDR",
+          name: "Công ty cổ phần Phát triển Bất động sản Phát Đạt ('')",
+        },
+        {
+          code: "PEN",
+          name: "Công ty cổ phần Xây lắp III Petrolimex (Petrolimex Installation No.III Joint Stock Company)",
+        },
+        {
+          code: "PET",
+          name: "Tổng Công ty Cổ phần Dịch vụ Tổng hợp Dầu khí (PETROSETCO )",
+        },
+        { code: "PGC", name: "Tổng Công ty Gas Petrolimex-CTCP (PGC )" },
+        {
+          code: "PGD",
+          name: "Công ty Cổ phần Phân phối Khí thấp áp Dầu khí Việt Nam (PV GAS D JSC)",
+        },
+        {
+          code: "PGS",
+          name: "Công ty Cổ phần Kinh doanh Khí Miền Nam (Gas South JSC)",
+        },
+        { code: "PHN", name: "Công ty Cổ phần Pin Hà Nội (HABACO)" },
+        { code: "PHR", name: "Công ty cổ phần Cao su Phước Hòa (PHURUCO)" },
+        { code: "PIC", name: "Công ty cổ phần Đầu tư Điện lực 3 ('')" },
+        {
+          code: "PIT",
+          name: "Công ty Cổ phần Xuất nhập khẩu Petrolimex (PITCO )",
+        },
+        {
+          code: "PJT",
+          name: "Công ty Cổ phần Vận tải Xăng dầu Đường thủy Petrolimex (PJTACO )",
+        },
+        {
+          code: "PLC",
+          name: "Tổng Công ty Hóa dầu Petrolimex-CTCP (PLC.,JSC)",
+        },
+        { code: "PLX", name: "Tập đoàn Xăng dầu Việt Nam (Petrolimex)" },
+        {
+          code: "PMC",
+          name: "Công ty Cổ phần Dược phẩm Dược liệu Pharmedic (PHARMEDIC JSC)",
+        },
+        {
+          code: "PMG",
+          name: "Công ty Cổ phần Đầu tư và Sản xuất Petro Miền Trung (PETRO MIEN TRUNG CO.,JSC)",
+        },
+        { code: "PMP", name: "Công ty cổ phần Bao bì Đạm Phú Mỹ (DPMP)" },
+        { code: "PMS", name: "Công ty Cổ phần Cơ khí Xăng dầu (PMSC )" },
+        { code: "PNC", name: "Công ty Cổ phần Văn hóa Phương Nam (PNC )" },
+        {
+          code: "PNJ",
+          name: "Công ty Cổ phần Vàng bạc Đá quý Phú Nhuận (PNJ)",
+        },
+        { code: "POT", name: "Công ty Cổ phần Thiết bị Bưu điện (Postef)" },
+        { code: "PPC", name: "Công ty Cổ phần Nhiệt điện Phả Lại (PLPC)" },
+        {
+          code: "PPP",
+          name: "Công ty Cổ phần Dược phẩm Phong Phú (PP.PHARCO)",
+        },
+        {
+          code: "PPY",
+          name: "Công ty cổ phần Xăng dầu Dầu khí Phú Yên (PV Oil Phú Yên)",
+        },
+        {
+          code: "PSC",
+          name: "Công ty cổ phần Vận tải và Dịch vụ Petrolimex Sài Gòn (PTS SaiGon)",
+        },
+        {
+          code: "PSD",
+          name: "Công ty cổ phần Dịch vụ Phân phối Tổng hợp Dầu khí (PETROSETCO DISTRIBUTION JSC)",
+        },
+        { code: "PTB", name: "Công ty Cổ phần Phú Tài (PTB)" },
+        {
+          code: "PTD",
+          name: "CTCP Thiết kế - Xây dựng - Thương mại Phúc Thịnh ('')",
+        },
+        {
+          code: "PTL",
+          name: "Công ty Cổ phần Victory Capital (PVC - PETROLAND JSC)",
+        },
+        {
+          code: "PTS",
+          name: "Công ty Cổ phần Vận tải và Dịch vụ Petrolimex Hải Phòng (PTS Hai Phong)",
+        },
+        {
+          code: "PVB",
+          name: "Công ty cổ phần Bọc ống Dầu khí Việt Nam (PV Coating)",
+        },
+        {
+          code: "PVD",
+          name: "Tổng Công ty Cổ phần Khoan và Dịch vụ Khoan Dầu khí (PV DRILLING )",
+        },
+        {
+          code: "PVG",
+          name: "Công ty Cổ phần Kinh doanh LPG Việt Nam (PVGAS NORTH)",
+        },
+        {
+          code: "PVP",
+          name: "Công ty Cổ phần Vận tải dầu khí Thái Bình Dương (PV TRANS PACIFIC JSC)",
+        },
+        {
+          code: "PVS",
+          name: "Tổng Công ty Cổ phần Dịch vụ Kỹ thuật Dầu khí Việt Nam (PTSC)",
+        },
+        {
+          code: "PVT",
+          name: "Tổng công ty Cổ phần Vận tải Dầu khí (PV Trans Corp)",
+        },
+        {
+          code: "QBS",
+          name: "Công ty Cổ phần Xuất nhập khẩu Quảng Bình (QUANG BINH JSC)",
+        },
+        { code: "QCG", name: "Công ty Cổ phần Quốc Cường Gia Lai (QCGL)" },
+        {
+          code: "QHD",
+          name: "Công ty Cổ phần Que hàn điện Việt Đức (VIWELCO)",
+        },
+        {
+          code: "RAL",
+          name: "Công ty Cổ phần Bóng đèn Phích nước Rạng Đông (RALACO )",
+        },
+        { code: "RCL", name: "Công ty Cổ phần Địa ốc Chợ Lớn (CHOLONRES)" },
+        { code: "RDP", name: "Công ty Cổ phần Rạng Đông Holding (RDP JSC)" },
+        { code: "REE", name: "Công ty Cổ phần Cơ điện lạnh (REE Corp )" },
+        { code: "S4A", name: "Công ty Cổ phần Thủy điện Sê San 4A (SHJC)" },
+        {
+          code: "S55",
+          name: "Công ty Cổ phần Sông Đà 505 (Song Da No 505 JSC)",
+        },
+        { code: "S99", name: "Công ty Cổ phần SCI (S99)" },
+        {
+          code: "SAB",
+          name: "Tổng CTCP Bia - Rượu - Nước giải khát Sài Gòn (SABECO)",
+        },
+        {
+          code: "SAF",
+          name: "Công ty Cổ phần Lương thực Thực phẩm Safoco (SAFOCO )",
+        },
+        { code: "SAM", name: "Công ty Cổ phần SAM Holdings (SACOM )" },
+        {
+          code: "SAV",
+          name: "Công ty Cổ phần Hợp tác kinh tế và Xuất nhập khẩu SAVIMEX (SAVIMEX )",
+        },
+        { code: "SBA", name: "Công ty Cổ phần Sông Ba (SBA)" },
+        { code: "SBV", name: "CTCP Siam Brothers Việt Nam (SBVN )" },
+        { code: "SC5", name: "Công ty Cổ phần Xây dựng số 5 (SC5)" },
+        {
+          code: "SCD",
+          name: "Công ty Cổ phần Nước giải khát Chương Dương (CDBECO)",
+        },
+        {
+          code: "SCR",
+          name: "Công ty Cổ phần Địa ốc Sài Gòn Thương Tín (Sacomreal)",
+        },
+        {
+          code: "SCS",
+          name: "Công ty cổ phần Dịch vụ Hàng hóa Sài Gòn (SCSC)",
+        },
+        { code: "SD4", name: "Công ty Cổ phần Sông Đà 4 (Song Da 4 JSC)" },
+        { code: "SDC", name: "Công ty Cổ phần Tư vấn Sông Đà (SDCC.,JSC)" },
+        { code: "SDN", name: "Công ty Cổ phần Sơn Đồng Nai (SDN )" },
+        { code: "SDT", name: "Công ty Cổ phần Sông Đà 10 (SONG DA 10., JSC)" },
+        {
+          code: "SED",
+          name: "Công ty Cổ phần Đầu tư và Phát triển giáo dục Phương Nam (EDID)",
+        },
+        { code: "SFC", name: "Công ty Cổ phần Nhiên liệu Sài Gòn (SFC )" },
+        { code: "SFG", name: "Công ty Cổ phần Phân bón Miền Nam (SFJC)" },
+        { code: "SFI", name: "Công ty Cổ phần Đại lý Vận tải SAFI (SAFI)" },
+        { code: "SFN", name: "Công ty Cổ phần Dệt lưới Sài Gòn (SFN )" },
+        {
+          code: "SGC",
+          name: "Công ty Cổ phần Xuất nhập khẩu Sa Giang (SAGIMEXCO ĐỒNG THÁP )",
+        },
+        {
+          code: "SGD",
+          name: "Công ty cổ phần Sách Giáo dục tại T.P Hồ Chí Minh (HEBCO)",
+        },
+        { code: "SGH", name: "Công ty Cổ phần Khách sạn Sài Gòn (SGH)" },
+        { code: "SGN", name: "Công ty cổ phần Phục vụ Mặt đất Sài Gòn (SAGS)" },
+        {
+          code: "SGR",
+          name: "Công ty cổ phần Tổng Công ty cổ phần Địa ốc Sài Gòn (SAIGONRES GROUP)",
+        },
+        {
+          code: "SGT",
+          name: "Công ty Cổ phần Công nghệ Viễn thông Sài Gòn (SAIGONTEL)",
+        },
+        {
+          code: "SHA",
+          name: "Công ty Cổ phần Sơn Hà Sài Gòn (SON HA SAI GON JSC)",
+        },
+        { code: "SHI", name: "Công ty cổ phần Quốc tế Sơn Hà (SONHA.,CORP)" },
+        {
+          code: "SHN",
+          name: "Công ty Cổ phần Đầu tư Tổng hợp Hà Nội (HANIC., CORP)",
+        },
+        { code: "SHP", name: "Công ty cổ phần Thủy điện Miền Nam (SHP)" },
+        { code: "SII", name: "Công ty cổ phần Hạ tầng nước Sài Gòn (SII JSC)" },
+        {
+          code: "SJD",
+          name: "Công ty Cổ phần Thủy điện Cần Đơn (CAN DON HSC )",
+        },
+        { code: "SJE", name: "Công ty Cổ phần Sông Đà 11 (Song Da No11.JSC)" },
+        {
+          code: "SJF",
+          name: "CTCP Đầu tư Sao Thái Dương (Sunstar Japan Foods JSC)",
+        },
+        {
+          code: "SKG",
+          name: "Công ty Cổ phần Tàu cao tốc Superdong – Kiên Giang (Superdong FF-(KG) Joint Stock Company)",
+        },
+        { code: "SLS", name: "Công ty cổ phần Mía đường Sơn La (SLS)" },
+        {
+          code: "SMA",
+          name: "Công ty Cổ phần Thiết bị Phụ tùng Sài Gòn (SAIGON MACHINCO)",
+        },
+        { code: "SMB", name: "Công ty Cổ phần Bia Sài Gòn - Miền Trung (SMB)" },
+        { code: "SMC", name: "Công ty Cổ phần Ðầu tư Thương mại SMC (SMC )" },
+        {
+          code: "SMN",
+          name: "Công ty Cổ phần Sách và Thiết bị Giáo dục Miền Nam (SOBEE JSC)",
+        },
+        { code: "SMT", name: "Công ty cổ phần SAMETEL (SAMETEL)" },
+        { code: "SPC", name: "Công ty Cổ phần Bảo vệ Thực vật Sài Gòn (SPC)" },
+        { code: "SPM", name: "Công ty Cổ phần S.P.M (S.P.M CORP)" },
+        { code: "SRA", name: "Công ty Cổ phần Sara Việt Nam (SARA.,JSC)" },
+        { code: "SRF", name: "Công ty Cổ phần SEAREFICO (SEAREFICO CORP)" },
+        { code: "SSC", name: "Công ty Cổ phần Giống cây trồng Miền Nam (SSC)" },
+        { code: "ST8", name: "Công ty Cổ phần Siêu Thanh (SJC )" },
+        {
+          code: "STC",
+          name: "Công ty Cổ phần Sách và Thiết bị trường học Tp. Hồ Chí Minh (STB JSC.)",
+        },
+        { code: "STG", name: "Công ty Cổ phần Kho vận Miền Nam (Sotrans)" },
+        { code: "STK", name: "Công ty cổ phần Sợi Thế Kỷ ('')" },
+        {
+          code: "STP",
+          name: "Công ty Cổ phần Công nghiệp Thương mại Sông Đà (STP)",
+        },
+        {
+          code: "SVC",
+          name: "Công ty Cổ phần Dịch vụ tổng hợp Sài Gòn (SAVICO)",
+        },
+        { code: "SVI", name: "Công ty Cổ phần Bao bì Biên Hòa (SOVI)" },
+        {
+          code: "SVT",
+          name: "Công ty Cổ phần Công nghệ Sài Gòn Viễn Đông (Savitech JSC)",
+        },
+        { code: "SZL", name: "Công ty cổ phần Sonadezi Long Thành (SZL)" },
+        { code: "TBC", name: "Công ty cổ phần Thủy điện Thác Bà (TBHPC)" },
+        {
+          code: "TC6",
+          name: "Công ty cổ phần Than Cọc Sáu - Vinacomin (VCSC)",
+        },
+        {
+          code: "TCD",
+          name: "Công ty Cổ phần Đầu tư Phát triển Công nghiệp và Vận tải (TRACODI)",
+        },
+        {
+          code: "TCL",
+          name: "Công ty Cổ phần Đại lý Giao nhận Vận tải Xếp dỡ Tân Cảng (TAN CANG LOGISTICS)",
+        },
+        {
+          code: "TCM",
+          name: "Công ty Cổ phần Dệt may - Đầu tư - Thương mại Thành Công (TCG)",
+        },
+        {
+          code: "TCO",
+          name: "Công ty Cổ phần Vận tải Đa phương thức Duyên Hải (TASA DUYENHAI)",
+        },
+        {
+          code: "TCR",
+          name: "Công ty Cổ phần Công nghiệp Gốm sứ Taicera (TAICERA )",
+        },
+        {
+          code: "TCT",
+          name: "Công ty Cổ phần Cáp treo Núi Bà Tây Ninh (CARTOUR )",
+        },
+        {
+          code: "TDC",
+          name: "Công ty Cổ phần Kinh doanh và Phát triển Bình Dương (TDC)",
+        },
+        {
+          code: "TDG",
+          name: "Công ty Cổ phần Đầu tư TDG Global (THAI DUONG PETROL.,JSC)",
+        },
+        {
+          code: "TDH",
+          name: "Công ty Cổ phần Phát triển Nhà Thủ Đức (THUDUC HOUSE )",
+        },
+        {
+          code: "TDN",
+          name: "Công ty Cổ phần Than Đèo Nai - Vinacomin (VDNC)",
+        },
+        {
+          code: "TDW",
+          name: "Công ty Cổ phần Cấp nước Thủ Đức (Thu Duc Wasuco.J.S.C)",
+        },
+        {
+          code: "TEG",
+          name: "Công ty cổ phần Năng lượng và Bất động sản Trường Thành (TECGROUP,. JSC)",
+        },
+        {
+          code: "TET",
+          name: "Công ty Cổ phần Vải sợi May mặc Miền Bắc (TEXTACO)",
+        },
+        { code: "THB", name: "Công ty cổ phần Bia Hà Nội - Thanh Hóa (THB)" },
+        {
+          code: "THG",
+          name: "Công ty Cổ phần Đầu tư và Xây dựng Tiền Giang (TICCO)",
+        },
+        { code: "THT", name: "Công ty cổ phần Than Hà Tu - Vinacomin (VHTC)" },
+        {
+          code: "TIG",
+          name: "Công ty Cổ phần Tập đoàn Đầu tư Thăng Long (ThangLong Invest Group.,JSC)",
+        },
+        {
+          code: "TIX",
+          name: "CTCP Sản xuất Kinh doanh Xuất nhập khẩu Dịch vụ và Đầu tư Tân Bình (Tanimex J.S.C)",
+        },
+        {
+          code: "TJC",
+          name: "Công ty cổ phần Dịch vụ Vận tải và Thương mại (TRANSCO)",
+        },
+        {
+          code: "TKU",
+          name: "Công ty Cổ phần Công nghiệp Tung Kuang (Tung Kuang)",
+        },
+        {
+          code: "TLD",
+          name: "Công ty Cổ phần Đầu tư Xây dựng và Phát triển Đô thị Thăng Long (THANG LONG DECO., JSC)",
+        },
+        {
+          code: "TLG",
+          name: "Công ty Cổ phần Tập đoàn Thiên Long (Tập đoàn Thiên Long)",
+        },
+        { code: "TLH", name: "Công ty Cổ phần Tập đoàn Thép Tiến Lên (TLC)" },
+        {
+          code: "TMB",
+          name: "Công ty Cổ phần Kinh doanh than Miền Bắc - Vinacomin (VNCT.,JSC)",
+        },
+        { code: "TMP", name: "Công ty cổ phần Thủy điện Thác Mơ (TMHPC)" },
+        {
+          code: "TMS",
+          name: "Công ty Cổ phần Transimex (Transimex Corporation)",
+        },
+        { code: "TMT", name: "Công ty Cổ phần Ô tô TMT (TMT MOTORS.,CORP)" },
+        { code: "TMX", name: "Công ty cổ phần VICEM Thương mại Xi măng ('')" },
+        {
+          code: "TNA",
+          name: "Công ty Cổ phần Thương mại Xuất nhập khẩu Thiên Nam (TENIMEX )",
+        },
+        { code: "TNC", name: "Công ty Cổ phần Cao su Thống Nhất (TRC)" },
+        { code: "TNG", name: "Công ty Cổ phần Đầu tư và Thương mại TNG (TNG)" },
+        {
+          code: "TNI",
+          name: "Công ty cổ phần Tập đoàn Thành Nam (Thanh Nam Group)",
+        },
+        { code: "TNT", name: "Công ty Cổ phần Tập đoàn TNT" },
+        {
+          code: "TOT",
+          name: "Công ty Cổ phần Transimex Logistics (TMS Logistics)",
+        },
+        {
+          code: "TPC",
+          name: "Công ty Cổ phần Nhựa Tân Đại Hưng (TAN DAI HUNG PLASTIC J.S. CO.,)",
+        },
+        { code: "TRA", name: "Công ty Cổ phần TRAPHACO (TRAPHACO)" },
+        { code: "TRC", name: "Công ty Cổ phần Cao su Tây Ninh (TANIRUCO )" },
+        { code: "TSB", name: "Công ty Cổ phần Ắc quy Tia sáng (TIBACO)" },
+        {
+          code: "TSC",
+          name: "Công ty Cổ phần Vật tư kỹ thuật Nông nghiệp Cần Thơ (TSC)",
+        },
+        {
+          code: "TTB",
+          name: "Công ty cổ phần Tập đoàn Tiến Bộ (Tien Bo Group)",
+        },
+        { code: "TTC", name: "Công ty Cổ phần Gạch men Thanh Thanh (TTC)" },
+        {
+          code: "TTE",
+          name: "Công ty Cổ phần Đầu tư Năng lượng Trường Thịnh (TTE.,JSC)",
+        },
+        { code: "TTL", name: "Tổng Công ty Thăng Long - CTCP (TLG ®)" },
+        {
+          code: "TTZ",
+          name: "Công ty cổ phần Đầu tư Xây dựng và Công nghệ Tiến Trung (Tien Trung JSC)",
+        },
+        { code: "TV2", name: "Công ty Cổ phần Tư vấn Xây dựng Điện 2 (PECC2)" },
+        { code: "TV3", name: "Công ty Cổ phần Tư vấn Xây dựng Điện 3 (PECC3)" },
+        {
+          code: "TV4",
+          name: "Công ty Cổ phần Tư vấn Xây dựng Điện 4 (PECC 4)",
+        },
+        {
+          code: "TVD",
+          name: "Công ty cổ phần Than Vàng Danh - Vinacomin (Vinacomin)",
+        },
+        { code: "TVT", name: "Tổng Công ty Việt Thắng - CTCP (VICOTEX)" },
+        {
+          code: "TXM",
+          name: "Công ty cổ phần VICEM Thạch cao Xi măng (VICEMCEMENT.T.,JSC)",
+        },
+        {
+          code: "TYA",
+          name: "Công ty Cổ phần Dây và Cáp điện Taya Việt Nam (TAYA VIỆT NAM )",
+        },
+        {
+          code: "UDC",
+          name: "Công ty cổ phần Xây dựng và Phát triển Đô thị tỉnh Bà Rịa-Vũng Tàu (UDEC)",
+        },
+        {
+          code: "UIC",
+          name: "Công ty Cổ phần Đầu tư Phát triển Nhà và Đô thị Idico (IDICO - UDICO)",
+        },
+        {
+          code: "UNI",
+          name: "Công ty Cổ phần Đầu tư và phát triển Sao Mai Việt",
+        },
+        {
+          code: "V12",
+          name: "Công ty Cổ phần Xây dựng số 12 (VINACONEX 12., JSC)",
+        },
+        {
+          code: "VAF",
+          name: "Công ty cổ phần Phân lân nung chảy Văn Điển (VADFCO)",
+        },
+        {
+          code: "VC1",
+          name: "Công ty Cổ phần Xây dựng số 1 (Vinaconex No.1 JSC)",
+        },
+        {
+          code: "VC2",
+          name: "Công ty Cổ phần Đầu tư và Xây dựng Vina2 (Vina2.,JSC)",
+        },
+        { code: "VC6", name: "Công ty Cổ phần Xây dựng và Đầu tư Visicons" },
+        { code: "VC7", name: "Công ty Cổ phần Tập đoàn BGI (BGI Group)" },
+        { code: "VCA", name: "Công ty Cổ phần Thép VICASA - VNSTEEL (VCS)" },
+        {
+          code: "VCF",
+          name: "Công ty Cổ phần VinaCafé Biên Hòa (VINACAFÉ BH)",
+        },
+        {
+          code: "VCM",
+          name: "Công ty Cổ phần Nhân lực và Thương mại Vinaconex (VINACONEX MEC.,JSC)",
+        },
+        { code: "VCS", name: "Công ty cổ phần VICOSTONE (VICOSTONE)" },
+        {
+          code: "VDP",
+          name: "Công ty Cổ phần Dược phẩm Trung ương VIDIPHA (VIDIPHA.)",
+        },
+        {
+          code: "VE1",
+          name: "Công ty Cổ phần Xây dựng điện VNECO 1 (VNECO 1)",
+        },
+        { code: "VE4", name: "Công ty Cổ phần Xây dựng điện VNECO4 (VNECO4)" },
+        { code: "VFG", name: "Công ty Cổ phần Khử trùng Việt Nam (VFC)" },
+        { code: "VGC", name: "Tổng Công ty Viglacera - CTCP (Viglacera)" },
+        {
+          code: "VGS",
+          name: "Công ty Cổ phần Ống thép Việt Đức VG PIPE (VG PIPE)",
+        },
+        { code: "VHM", name: "Công ty cổ phần Vinhomes (Vinhomes)" },
+        {
+          code: "VIC",
+          name: "Tập đoàn Vingroup - Công ty Cổ phần (VINGROUP JOINT STOCK COMPANY)",
+        },
+        {
+          code: "VID",
+          name: "Công ty Cổ phần Đầu tư Phát triển Thương mại Viễn Đông (VIDON )",
+        },
+        {
+          code: "VIP",
+          name: "Công ty Cổ phần Vận tải Xăng dầu VIPCO (VIPCO )",
+        },
+        { code: "VIT", name: "Công ty Cổ phần Viglacera Tiên Sơn (VIT)" },
+        {
+          code: "VJC",
+          name: "Công ty cổ phần Hàng không VietJet (VietJet Air)",
+        },
+        { code: "VKC", name: "Công ty cổ phần VKC Holdings (VKCHoldings)" },
+        { code: "VMS", name: "CTCP Phát triển Hàng hải (VIMADECO)" },
+        {
+          code: "VNC",
+          name: "Công ty Cổ phần Tập đoàn Vinacontrol (Vinacontrol )",
+        },
+        {
+          code: "VNE",
+          name: "Tổng công ty Cổ phần Xây dựng điện Việt Nam (VNECO )",
+        },
+        {
+          code: "VNG",
+          name: "Công ty Cổ phần Du lịch Thành Thành Công (Thanh Thanh Cong Tourist Joint Stock Company)",
+        },
+        { code: "VNL", name: "Công ty cổ phần Logistics Vinalink (VINALINK)" },
+        { code: "VNM", name: "Công ty Cổ phần Sữa Việt Nam (VINAMILK )" },
+        {
+          code: "VNS",
+          name: "Công ty Cổ phần Ánh Dương Việt Nam (Vinasun corp.)",
+        },
+        {
+          code: "VNT",
+          name: "Công ty cổ phần Giao nhận Vận tải Ngoại thương (VNTLOGISTICS JSC)",
+        },
+        { code: "VOS", name: "Công ty Cổ phần Vận tải biển Việt Nam (VOSCO)" },
+        {
+          code: "VPD",
+          name: "Công ty cổ phần Phát triển Điện lực Việt Nam (VNPD)",
+        },
+        {
+          code: "VPG",
+          name: "Công ty Cổ phần Đầu tư Thương mại Xuất nhập khẩu Việt Phát",
+        },
+        { code: "VPH", name: "Công ty Cổ phần Vạn Phát Hưng (VPH Corp)" },
+        {
+          code: "VPI",
+          name: "Công ty Cổ phần Đầu tư Văn Phú - Invest (VANPHU.INVEST)",
+        },
+        { code: "VPS", name: "CTCP Thuốc sát trùng Việt Nam (Vipesco)" },
+        {
+          code: "VRC",
+          name: "Công ty Cổ phần Bất động sản và Đầu tư VRC (VRC)",
+        },
+        { code: "VRE", name: "Công ty Cổ phần Vincom Retail (VINCOM RETAIL )" },
+        {
+          code: "VSA",
+          name: "Công ty cổ phần Đại lý Hàng hải Việt Nam (VOSA CORPORATION)",
+        },
+        {
+          code: "VSC",
+          name: "Công ty cổ phần Tập đoàn Container Việt Nam (Viconship)",
+        },
+        {
+          code: "VSH",
+          name: "Công ty Cổ phần Thủy điện Vĩnh Sơn - Sông Hinh (VSHPC )",
+        },
+        {
+          code: "VSM",
+          name: "Công ty Cổ phần Container Miền Trung (VICONSHIP ĐN)",
+        },
+        { code: "VTB", name: "Công ty Cổ phần Viettronics Tân Bình (VTB )" },
+        { code: "VTC", name: "Công ty Cổ phần Viễn thông VTC (VTC )" },
+        {
+          code: "VTO",
+          name: "Công ty Cổ phần Vận tải Xăng dầu VITACO (VITACO)",
+        },
+        {
+          code: "VTV",
+          name: "Công ty Cổ phần Năng lượng và Môi trường VICEM (VICEM E&E JSC)",
+        },
+        { code: "WCS", name: "Công ty Cổ phần Bến xe Miền Tây (BXMT)" },
+        { code: "YEG", name: "Công ty Cổ phần Tập đoàn Yeah1 (YEG)" },
+      ];
+
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= 2010; y--) {
+        year.add(new Option(y, y));
+      }
+      year.value = currentYear;
+      year.addEventListener("change", loadTrList);
+
+      function toggleDropdown(event) {
+        event.stopPropagation();
+        const group = document.getElementById("multiSelectGroup");
+        group.classList.toggle("active");
+      }
+
+      document.addEventListener("click", () => {
+        document.getElementById("multiSelectGroup").classList.remove("active");
+      });
+
+      function updateDropdownText() {
+        const checked = document.querySelectorAll(
+          '#trid-list input[type="checkbox"]:checked',
+        );
+        const btn = document.querySelector(".dropdown-btn");
+        if (checked.length === 0) {
+          btn.textContent = "Chọn chỉ tiêu...";
+        } else {
+          btn.textContent = `Đã chọn ${checked.length} chỉ tiêu`;
+        }
+      }
+
+      function filterTr() {
+        const q = document.getElementById("searchTr").value.toLowerCase();
+        const items = document.querySelectorAll(".multi-select-item");
+        items.forEach((item) => {
+          const txt = item.innerText.toLowerCase();
+          item.style.display = txt.includes(q) ? "flex" : "none";
+        });
+      }
+
+      async function loadTrList() {
+        const listContainer = document.getElementById("trid-list");
+        listContainer.innerHTML = `<div style="color: #999; font-size: 13px; padding: 4px;">Đang tải...</div>`;
+        document.getElementById("searchTr").value = "";
+        updateDropdownText();
+
+        const company = companies[0];
+        const url = urlOf(company.code, year.value);
+
+        try {
+          const html = await (await fetch(url)).text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const table = doc.getElementById("tableContent");
+
+          listContainer.innerHTML = "";
+
+          if (table) {
+            table.querySelectorAll("tr[id]").forEach((tr) => {
+              const id = tr.id.trim();
+              if (!id) return;
+
+              const firstTd = tr.querySelector("td");
+              if (!firstTd) return;
+
+              const text = firstTd.innerText.trim();
+
+              const label = document.createElement("label");
+              label.className = "multi-select-item";
+              label.innerHTML = `<input type="checkbox" value="${id}" data-text="${text}" onchange="updateDropdownText()"> [${id}] ${text}`;
+              listContainer.appendChild(label);
+            });
+          } else {
+            listContainer.innerHTML = `<div style="color: red; font-size: 13px; padding: 4px;">Không tìm thấy chỉ tiêu!</div>`;
+          }
+        } catch (e) {
+          console.error("Lỗi khi tải danh sách chỉ tiêu:", e);
+          listContainer.innerHTML = `<div style="color: red; font-size: 13px; padding: 4px;">Lỗi kết nối khi tải chỉ tiêu!</div>`;
+        }
+      }
+
+      loadTrList();
+
+      async function fetchTable(url) {
+        const r = await fetch(url);
+        const txt = await r.text();
+        const doc = new DOMParser().parseFromString(txt, "text/html");
+        return doc.getElementById("tableContent");
+      }
+
+      function toggleControls(disable) {
+        document.getElementById("reportType").disabled = disable;
+        document.getElementById("year").disabled = disable;
+        document.getElementById("btnRun").disabled = disable;
+        document.getElementById("btnRunWithPool").disabled = disable;
+        document.getElementById("btnExcel").disabled = disable;
+
+        const btn = document.querySelector(".dropdown-btn");
+        if (disable) {
+          btn.classList.add("disabled");
+          document
+            .getElementById("multiSelectGroup")
+            .classList.remove("active");
+        } else {
+          btn.classList.remove("disabled");
+        }
+      }
+
+      function getSelectedIds() {
+        const checkedBoxes = document.querySelectorAll(
+          '#trid-list input[type="checkbox"]:checked',
+        );
+        return Array.from(checkedBoxes).map((cb) => ({
+          id: cb.value,
+          text: cb.getAttribute("data-text"),
+        }));
+      }
+
+      // XÂY DỰNG LẠI HEADER BẢNG DỰA TRÊN DANH SÁCH CHỈ TIÊU ĐÃ CHỌN (NẰM NGANG)
+      function rebuildHeaders(selectedItems) {
+        const parentHdr = document.getElementById("parentHdr");
+        const hdr = document.getElementById("hdr");
+
+        // Trả về mặc định
+        parentHdr.innerHTML =
+          '<th rowspan="2">Mã</th><th rowspan="2">Tên DN</th>';
+        hdr.innerHTML = "";
+
+        selectedItems.forEach((item) => {
+          // Tiêu đề cha tầng 1 gộp 4 cột: 4 Quý
+          const thParent = document.createElement("th");
+          thParent.colSpan = 4;
+          thParent.style.textAlign = "center";
+          thParent.textContent = `[${item.id}] ${item.text}`;
+          parentHdr.appendChild(thParent);
+
+          // Tiêu đề con tầng 2
+          const subHeaders = [
+            `Quý 1 - ${year.value}`,
+            `Quý 2 - ${year.value}`,
+            `Quý 3 - ${year.value}`,
+            `Quý 4 - ${year.value}`,
+          ];
+
+          subHeaders.forEach((text) => {
+            const thSub = document.createElement("th");
+            thSub.textContent = text;
+            hdr.appendChild(thSub);
+          });
+        });
+      }
+
+      // HÀM CHẠY TUẦN TỰ (Sequential)
+      async function run() {
+        const selectedItems = getSelectedIds();
+        if (selectedItems.length === 0) {
+          alert("Vui lòng chọn ít nhất một chỉ tiêu!");
+          return;
+        }
+
+        toggleControls(true);
+        rebuildHeaders(selectedItems);
+
+        const tb = document.querySelector("#out tbody");
+        tb.innerHTML = "";
+
+        let done = 0;
+
+        for (const c of companies) {
+          try {
+            const url = urlOf(c.code, year.value);
+            const tableContent = await fetchTable(url);
+
+            const row = document.createElement("tr");
+            row.innerHTML = `<td><a href="${url}" target="_blank">${c.code}</a></td><td>${c.name}</td>`;
+
+            if (tableContent) {
+              selectedItems.forEach((item) => {
+                const tr = tableContent.querySelector(`tr[id="${item.id}"]`);
+                if (tr) {
+                  const tds = [...tr.querySelectorAll(":scope > td")];
+                  // Lấy từ cột số 2, lấy cố định 4 cột quý
+                  for (i = 1; i <= 4; i++) {
+                    let tdCell = document.createElement("td");
+                    tdCell.textContent = tds[i].innerText.trim();
+                    row.appendChild(tdCell);
+                  }
+                } else {
+                  row.innerHTML += `<td>${item.text}</td><td colspan="4" style="color: #999; font-style: italic; text-align: center;">Không có dữ liệu</td>`;
+                }
+              });
+            } else {
+              // Điền trống toàn bộ các ô chỉ tiêu nếu không tìm thấy báo cáo
+              selectedItems.forEach((item) => {
+                row.innerHTML += `<td>${item.text}</td><td colspan="4" style="color: red; font-style: italic; text-align: center;">Không tìm thấy BC</td>`;
+              });
+            }
+            tb.appendChild(row);
+          } catch (e) {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>${c.code}</td><td>${c.name}</td>`;
+            selectedItems.forEach((item) => {
+              row.innerHTML += `<td colspan="5" style="color: red; font-style: italic; text-align: center;">Lỗi kết nối</td>`;
+            });
+            tb.appendChild(row);
+          }
+          done++;
+          log.textContent = `Đã xử lý ${done}/${companies.length} công ty`;
+        }
+
+        toggleControls(false);
+      }
+
+      // Hàm hỗ trợ chạy song song có giới hạn (Promise Pool)
+      async function asyncPool(poolLimit, array, iteratorFn) {
+        const ret = [];
+        const executing = [];
+        for (const item of array) {
+          const p = Promise.resolve().then(() => iteratorFn(item));
+          ret.push(p);
+
+          if (poolLimit <= array.length) {
+            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+            executing.push(e);
+            if (executing.length >= poolLimit) {
+              await Promise.race(executing);
+            }
+          }
+        }
+        return Promise.all(ret);
+      }
+
+      // HÀM CHẠY SONG SONG (Parallel Limit 5)
+      async function runWithPool() {
+        const selectedItems = getSelectedIds();
+        if (selectedItems.length === 0) {
+          alert("Vui lòng chọn ít nhất một chỉ tiêu!");
+          return;
+        }
+
+        toggleControls(true);
+        rebuildHeaders(selectedItems);
+
+        const tb = document.querySelector("#out tbody");
+        tb.innerHTML = "";
+
+        let done = 0;
+        const CONCURRENCY_LIMIT = 5;
+
+        log.textContent = `Đang khởi tạo tiến trình lấy dữ liệu song song...`;
+
+        const fetchTask = async (c) => {
+          try {
+            const url = urlOf(c.code, year.value);
+            const tableContent = await fetchTable(url);
+            done++;
+            log.textContent = `Đang tải ${done}/${companies.length}`;
+            return { company: c, tableContent, url, success: true };
+          } catch (e) {
+            done++;
+            log.textContent = `Đang tải ${done}/${companies.length}`;
+            return { company: c, error: e.message, success: false };
+          }
+        };
+
+        const results = await asyncPool(
+          CONCURRENCY_LIMIT,
+          companies,
+          fetchTask,
+        );
+        log.textContent = `Đang kết xuất dữ liệu lên bảng...`;
+
+        results.forEach(({ company, tableContent, url, error, success }) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td><a href="${url || "#"}" target="_blank">${company.code}</a></td><td>${company.name}</td>`;
+
+          if (success) {
+            if (tableContent) {
+              selectedItems.forEach((item) => {
+                const tr = tableContent.querySelector(`tr[id="${item.id}"]`);
+                if (tr) {
+                  const tds = [...tr.querySelectorAll(":scope > td")];
+                  // Lấy từ cột số 2, lấy cố định 4 cột quý
+                  for (i = 1; i <= 4; i++) {
+                    let tdCell = document.createElement("td");
+                    tdCell.textContent = tds[i].innerText.trim();
+                    row.appendChild(tdCell);
+                  }
+                } else {
+                  row.innerHTML += `<td>${item.text}</td><td colspan="4" style="color: #999; font-style: italic; text-align: center;">Không có dữ liệu</td>`;
+                }
+              });
+            } else {
+              selectedItems.forEach((item) => {
+                row.innerHTML += `<td>${item.text}</td><td colspan="4" style="color: red; font-style: italic; text-align: center;">Không tìm thấy BC</td>`;
+              });
+            }
+          } else {
+            selectedItems.forEach((item) => {
+              row.innerHTML += `<td colspan="5" style="color: red; font-style: italic; text-align: center;">Lỗi kết nối</td>`;
+            });
+          }
+          tb.appendChild(row);
+        });
+
+        log.textContent = `Hoàn thành xử lý toàn bộ ${done}/${companies.length} công ty!`;
+        toggleControls(false);
+      }
+
+      function exportExcel() {
+        const table = document.getElementById("out");
+        const wb = XLSX.utils.table_to_book(table, { sheet: "CafeF" });
+        const targetYear = document.getElementById("year").value;
+        const report =
+          document.getElementById("reportType").selectedOptions[0].text;
+        XLSX.writeFile(wb, `CafeF_${report}_${targetYear}.xlsx`);
+      }
+    </script>
+  </body>
+</html>
